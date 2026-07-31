@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dasgauge"
+version = "0.1.0"
+description = "Reading, preprocessing and plotting utilities for Distributed Acoustic Sensing (DAS) data"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "h5py>=3.8",
+]
+
+[project.optional-dependencies]
+# matplotlib is only needed by dasgauge.plotting; it is imported lazily so the
+# rest of the package works without it.
+plotting = ["matplotlib>=3.7"]
+
+[tool.setuptools]
+packages = ["dasgauge"]
+
+# The test suite uses only the standard library's unittest (plus matplotlib for
+# the plotting tests), so it needs no extra test dependency:
+#     python -m unittest discover -s tests -v

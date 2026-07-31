@@ -1,0 +1,206 @@
+{
+  "source_repository": "git@github.com:UWGeoD/DAS_Preprocessing.git",
+  "source_repository_https": "https://github.com/UWGeoD/DAS_Preprocessing",
+  "source_commit": "896e00005b68c7878ae80d50833bd9eeabe7ebc7",
+  "source_branch": "main",
+  "source_commit_date": "2026-07-24T23:09:58-05:00",
+  "extraction_date": "2026-07-31",
+  "source_license": "MIT",
+  "source_copyright": "Copyright (c) 2025 GeoD Research Group",
+  "destination_repository": "git@github.com:UWGeoD/dasgauge.git",
+  "destination_license": "MIT",
+  "independent_after_import": true,
+  "runtime_dependency_on_source": false,
+  "source_files": [
+    {
+      "path": "DAS.py",
+      "sha256": "6cfc09148542347cbf3bc47c6007ec063911b1eb62f89295aaf051a5e41c835d",
+      "permalink": "https://github.com/UWGeoD/DAS_Preprocessing/blob/896e00005b68c7878ae80d50833bd9eeabe7ebc7/DAS.py#L7-L94",
+      "source_ranges": [
+        "L7-L13",
+        "L15-L94",
+        "L98-L124",
+        "L129-L167",
+        "L172-L222",
+        "L228-L266"
+      ],
+      "source_symbols": [
+        "_decode_attr",
+        "_parse_start_time_attr",
+        "DAS",
+        "DAS.__init__",
+        "DAS._read_optasense",
+        "DAS._read_silixa",
+        "DAS._read_raw_hdf5"
+      ],
+      "destination": "dasgauge/io.py",
+      "destination_symbols": [
+        "_decode_attr",
+        "_parse_start_time_attr",
+        "DAS",
+        "DAS.__init__",
+        "DAS._read_optasense",
+        "DAS._read_silixa",
+        "DAS._read_raw_hdf5"
+      ],
+      "excluded_symbols": [
+        "DAS.plot",
+        "DAS.plot_single",
+        "MulDAS"
+      ],
+      "modifications": [
+        "Removed `import Utilities` (Project A module-namespace coupling).",
+        "Removed DAS.plot (L268-L282) and DAS.plot_single (L284-L287): convenience wrappers that imported Project A's `Utilities` and `preprocessing` modules; the underlying plotting functions are available directly as dasgauge.plotting.plot_das_data / plot_single.",
+        "Removed class MulDAS (L293-L348): multi-file concatenation, outside the requested scope.",
+        "Removed the unused local `RAW_GRP` in _read_silixa and the author-specific comment '# Paths from your example'.",
+        "Added module docstring with source attribution, __all__ = ['DAS'].",
+        "Algorithms, metadata keys, vendor dispatch and error messages are otherwise byte-identical to the source."
+      ]
+    },
+    {
+      "path": "preprocessing.py",
+      "sha256": "ae9e5b4bff4747c3071f61a26b2f23473f0bf8de2ed4bd248d27193a08d4638a",
+      "permalink": "https://github.com/UWGeoD/DAS_Preprocessing/blob/896e00005b68c7878ae80d50833bd9eeabe7ebc7/preprocessing.py#L38-L667",
+      "source_ranges": [
+        "L32",
+        "L38-L45",
+        "L48-L52",
+        "L58-L61",
+        "L64-L97",
+        "L100-L119",
+        "L122-L216",
+        "L219-L238",
+        "L241-L289",
+        "L292-L315",
+        "L318-L345",
+        "L348-L351",
+        "L354-L367",
+        "L370-L381",
+        "L384-L397",
+        "L400-L508",
+        "L518-L523",
+        "L526-L542",
+        "L545-L553",
+        "L556-L667"
+      ],
+      "source_symbols": [
+        "Array2D",
+        "_as_2d_float",
+        "_require_positive",
+        "detrend_linear",
+        "bandpass_sos",
+        "detrend_then_bandpass",
+        "fk_filter",
+        "integrate_to_strain",
+        "integrate_strain_rate_fd",
+        "downsample_time",
+        "hilbert_transform",
+        "_meyer_nu",
+        "_meyer_W",
+        "_meyer_V",
+        "_curvelet_soft_threshold",
+        "curvelet_denoise",
+        "Step",
+        "_normalize_spec",
+        "_STEP_REGISTRY",
+        "make_preprocess"
+      ],
+      "destination": "dasgauge/preprocessing.py",
+      "destination_symbols": [
+        "Array2D",
+        "_as_2d_float",
+        "_require_positive",
+        "detrend_linear",
+        "bandpass_sos",
+        "detrend_then_bandpass",
+        "fk_filter",
+        "integrate_to_strain",
+        "integrate_strain_rate_fd",
+        "downsample_time",
+        "hilbert_transform",
+        "_meyer_nu",
+        "_meyer_W",
+        "_meyer_V",
+        "_curvelet_soft_threshold",
+        "curvelet_denoise",
+        "Step",
+        "_normalize_spec",
+        "_STEP_REGISTRY",
+        "make_preprocess"
+      ],
+      "excluded_symbols": [
+        "curvelet_like_denoise",
+        "load_and_preprocess"
+      ],
+      "modifications": [
+        "Removed the alias `curvelet_like_denoise = curvelet_denoise` (L512): backward-compatibility shim for Project A notebooks.",
+        "Removed load_and_preprocess (L670-L689): .npy sample loading tied to Project A's dataset layout.",
+        "Dropped the unused `Iterable` name from the typing import (L25).",
+        "integrate_strain_rate_fd docstring: replaced the Project A-specific sentence naming SpatialDAE training / 'model to collapse to pred=0' with a project-neutral statement of the same sign-convention consequence. Code unchanged.",
+        "curvelet_denoise docstring: added a note that the implementation is pure NumPy FFT and needs no external curvelet library. Code unchanged.",
+        "Added source-attribution header to the existing module docstring and an explicit __all__.",
+        "All algorithms, defaults, validation, scientific references (Candes et al. 2006; van den Ende et al. 2023; Zhang et al. 2025) and comments are preserved unchanged."
+      ]
+    },
+    {
+      "path": "Utilities.py",
+      "sha256": "67fc708bb4b6457ebb222338de23ede6364e9d22e2ae37c826d7ed14459be2bb",
+      "permalink": "https://github.com/UWGeoD/DAS_Preprocessing/blob/896e00005b68c7878ae80d50833bd9eeabe7ebc7/Utilities.py#L201-L296",
+      "source_ranges": [
+        "L9",
+        "L10",
+        "L201-L249",
+        "L252-L296"
+      ],
+      "source_symbols": [
+        "epsilon",
+        "normalize",
+        "plot_das_data",
+        "plot_single"
+      ],
+      "destination": "dasgauge/plotting.py",
+      "destination_symbols": [
+        "epsilon",
+        "normalize",
+        "plot_das_data",
+        "plot_single",
+        "_pyplot"
+      ],
+      "excluded_symbols": [
+        "_PUB_COLORS",
+        "_STEP_DISPLAY",
+        "_fmt_step",
+        "plot_das_comparison",
+        "downsample_data",
+        "draw_signal_rects",
+        "compute_snr",
+        "time_intervals_to_mask",
+        "snr_from_time_mask"
+      ],
+      "modifications": [
+        "Replaced the top-level `import matplotlib.pyplot as plt` with a lazy `_pyplot()` helper (new code, not derived) so matplotlib is an optional dependency and the failure message names the `dasgauge[plotting]` extra.",
+        "Dropped unused imports carried by the original module: scipy.signal, datetime, collections.OrderedDict, re.",
+        "Removed commented-out alternative cmap/data lines inside plot_das_data's imshow call (L226, L228).",
+        "Extended plot_das_data's docstring with a one-line summary; existing text kept.",
+        "Excluded plot_das_comparison (L43-L198) and its helpers _PUB_COLORS/_STEP_DISPLAY/_fmt_step (L12-L41): a UNet-vs-raw SNR comparison figure specific to Project A's experiments.",
+        "Excluded draw_signal_rects (L308-L337), compute_snr (L340-L407), time_intervals_to_mask (L410-L461), snr_from_time_mask (L464-L510): video-frame/labels.csv-coupled metrics, outside the requested plotting scope.",
+        "Excluded downsample_data (L299-L305): superseded by preprocessing.downsample_time, which is the requested downsampling implementation.",
+        "Plot geometry, normalization, colormap, labels and return values are otherwise unchanged."
+      ]
+    }
+  ],
+  "dependencies": {
+    "required": [
+      "numpy>=1.24",
+      "scipy>=1.10",
+      "h5py>=3.8"
+    ],
+    "optional": {
+      "plotting": [
+        "matplotlib>=3.7"
+      ]
+    },
+    "notes": "Curvelet processing needs no specialized package: curvelet_denoise is implemented directly on numpy.fft, so no optional curvelet extra exists. matplotlib is the only optional runtime dependency (extra: plotting), imported lazily. The test suite uses the standard library's unittest, so no test dependency is declared."
+  },
+  "destination_license_notice": "dasgauge LICENSE is MIT, Copyright (c) 2026 GeoD Research Group (unchanged by this import). The upstream notice 'Copyright (c) 2025 GeoD Research Group, MIT License' is retained in the module docstring of each destination file containing derived code."
+}
