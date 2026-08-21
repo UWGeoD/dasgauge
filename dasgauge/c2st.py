@@ -92,15 +92,17 @@ def _das_batch_to_resnet(batch, torch, device, lower_quantile, upper_quantile):
             scaled = np.zeros_like(sample, dtype=np.float32)
         else:
             scaled = np.clip((sample - lower) / (upper - lower), 0.0, 1.0)
-        images.append(scaled)
+        images.append(np.asarray(scaled, dtype=np.float32))
 
-    tensor = torch.from_numpy(np.stack(images)[:, None, :, :]).to(device)
+    tensor = torch.from_numpy(np.stack(images)[:, None, :, :]).to(
+        device=device, dtype=torch.float32
+    )
     tensor = torch.nn.functional.interpolate(
         tensor, size=(224, 224), mode="bilinear", align_corners=False
     )
     tensor = tensor.repeat(1, 3, 1, 1)
-    mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
+    mean = tensor.new_tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+    std = tensor.new_tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
     return (tensor - mean) / std
 
 

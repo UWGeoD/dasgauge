@@ -9,6 +9,7 @@ import h5py
 import numpy as np
 
 from dasgauge.c2st import (
+    _das_batch_to_resnet,
     extract_summary_features,
     knn_predict,
     make_comparison_groups,
@@ -37,6 +38,24 @@ class KNNTests(unittest.TestCase):
 
 
 class FeatureTests(unittest.TestCase):
+    def test_resnet_input_is_float32(self):
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is not installed")
+
+        batch = np.arange(2 * 3 * 4, dtype=np.int32).reshape(2, 3, 4)
+        tensor = _das_batch_to_resnet(
+            batch,
+            torch,
+            torch.device("cpu"),
+            lower_quantile=0.01,
+            upper_quantile=0.99,
+        )
+
+        self.assertEqual(tensor.dtype, torch.float32)
+        self.assertEqual(tuple(tensor.shape), (2, 3, 224, 224))
+
     def test_summary_features_have_fixed_shape(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "samples.h5"
