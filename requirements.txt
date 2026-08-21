@@ -1,4 +1,13 @@
-# Complete editable environment for the package, plots, C2ST experiments,
-# manuscript figures, and tests. Dependency versions live in pyproject.toml so
-# this file cannot drift from the package metadata.
--e .[plotting,c2st]
+# Direct third-party dependencies for the package, plots, C2ST experiments,
+# manuscript figures, and tests. Pip installs their transitive dependencies
+# automatically. Keep these constraints synchronized with pyproject.toml.
+numpy>=1.24
+scipy>=1.10
+h5py>=3.8
+PyYAML>=6.0
+matplotlib>=3.7
+torch==2.5.1
+torchvision==0.20.1
+
+# Install this checkout as an editable package as part of the same command.
+-e .
