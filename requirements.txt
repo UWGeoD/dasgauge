@@ -1,0 +1,4 @@
+# Complete editable environment for the package, plots, C2ST experiments,
+# manuscript figures, and tests. Dependency versions live in pyproject.toml so
+# this file cannot drift from the package metadata.
+-e .[plotting,c2st]

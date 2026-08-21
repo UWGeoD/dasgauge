@@ -68,7 +68,9 @@ class SourceHygieneTests(unittest.TestCase):
     )
     def test_only_declared_third_party_imports(self):
         """Third-party imports are limited to the declared dependencies."""
-        allowed = {"numpy", "scipy", "h5py", "matplotlib"}
+        allowed = {
+            "numpy", "scipy", "h5py", "matplotlib", "yaml", "torch", "torchvision"
+        }
         stdlib = set(sys.stdlib_module_names)
         for path in PY_FILES:
             tree = ast.parse(path.read_text())

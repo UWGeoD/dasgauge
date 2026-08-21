@@ -8,7 +8,7 @@ modifications and licensing. The two repositories are maintained independently
 after that import.
 """
 
-from .io import DAS
+from .io import DAS, DASRecording, RecordingPart
 from .preprocessing import (
     Step,
     bandpass_sos,
@@ -22,12 +22,14 @@ from .preprocessing import (
     integrate_to_strain,
     make_preprocess,
 )
-from .plotting import plot_das_data, plot_single
+from .plotting import plot_das_data, plot_single, plot_waterfall
 
 __version__ = "0.1.0"
 
 __all__ = [
     "DAS",
+    "DASRecording",
+    "RecordingPart",
     "Step",
     "bandpass_sos",
     "curvelet_denoise",
@@ -41,5 +43,6 @@ __all__ = [
     "make_preprocess",
     "plot_das_data",
     "plot_single",
+    "plot_waterfall",
     "__version__",
 ]

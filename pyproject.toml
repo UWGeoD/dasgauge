@@ -13,12 +13,17 @@ dependencies = [
     "numpy>=1.24",
     "scipy>=1.10",
     "h5py>=3.8",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
 # matplotlib is only needed by dasgauge.plotting; it is imported lazily so the
 # rest of the package works without it.
 plotting = ["matplotlib>=3.7"]
+c2st = [
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+]
 
 [tool.setuptools]
 packages = ["dasgauge"]

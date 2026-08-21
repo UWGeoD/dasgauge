@@ -174,8 +174,9 @@ mechanically.
 
 | Scope | Packages |
 | --- | --- |
-| Required | `numpy>=1.24`, `scipy>=1.10`, `h5py>=3.8` |
+| Required | `numpy>=1.24`, `scipy>=1.10`, `h5py>=3.8`, `PyYAML>=6.0` |
 | Optional extra `plotting` | `matplotlib>=3.7` |
+| Optional extra `c2st` | `torch==2.5.1`, `torchvision==0.20.1` |
 
 The test suite uses only the standard library's `unittest` (plus matplotlib for
 the plotting tests), so no test dependency is declared.
@@ -183,11 +184,12 @@ the plotting tests), so no test dependency is declared.
 Curvelet processing needs **no** specialized package — `curvelet_denoise` is
 implemented directly on `numpy.fft` (Meyer windows and shear geometry are
 computed in-module), so no CurveLab / PyCurvelab / curvelops extra exists.
-matplotlib is the only optional runtime dependency, and it is imported lazily
-with an actionable error message.
+Matplotlib and PyTorch/TorchVision are optional runtime dependencies and are
+imported lazily with actionable error messages.
 
 Project A's `requirements.txt` additionally listed `tzlocal`, `jupyterlab`,
-`pandas` and `pyyaml`; none are used by the imported code and none were carried over.
+`pandas` and `pyyaml`; none are used by the imported upstream code. This
+project's independently written dataset-config module does use PyYAML.
 
 ## License
 

@@ -8,3 +8,41 @@ dist/
 venv/
 *.h5
 *.npy
+
+# symlink to external reference-paper storage; committing it would leak a local path
+/references
+
+# symlink to external study-note storage; committing it would leak a local path
+/study_notes
+
+# symlink to externally stored generated sample arrays
+/samples
+
+# Keep compact, portable manuscript summaries; ignore other sweep artifacts.
+/sweep/*
+!/sweep/newville_nov/
+/sweep/newville_nov/*
+!/sweep/newville_nov/summary.csv
+!/sweep/newville_nov/summary.json
+!/sweep/newville_nov/summary.md
+
+# Raw Monte Carlo records and run logs are reproducible intermediates.
+/experiments/**/*.jsonl.gz
+/sweep.log
+
+# dataset configs point at local recordings; only the template is committed
+/configs/*.yaml
+!/configs/example_dataset.yaml
+!/configs/newville_nov.yaml
+
+.ipynb_checkpoints/
+
+# local IEEE GRSL manuscript workspace
+/ieee_grsl_latex_template/
+
+# SMAR conference figure — local working material, not part of the package
+/notebooks/smar_figure.ipynb
+/notebooks/smar_section_comparison.png
+
+# slide working material — not part of the package
+/slides/

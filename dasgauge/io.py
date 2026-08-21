@@ -13,9 +13,11 @@ Original work Copyright (c) 2025 GeoD Research Group, MIT License.
 
 import numpy as np
 import h5py
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-__all__ = ["DAS"]
+__all__ = ["DAS", "DASRecording", "RecordingPart"]
 
 
 def _decode_attr(val):
@@ -275,3 +277,212 @@ class DAS:
             "raw_dtype": str(self.data.dtype),
             "raw_shape": tuple(self.data.shape),
         })
+
+
+@dataclass(frozen=True)
+class RecordingPart:
+    """Metadata and global sample bounds for one file in a recording."""
+
+    path: Path
+    start_time: datetime
+    stop_time: datetime
+    start_sample: int
+    stop_sample: int
+    n_time: int
+    n_channels: int
+    fs: float
+    dx: float
+    dtype: str
+    raw_path: str
+
+
+class DASRecording:
+    """A timestamp-ordered, lazy view over consecutive OptaSense files.
+
+    Unlike :class:`DAS`, this class reads only the requested channel and time
+    slices. Global time ranges may cross any number of source-file boundaries.
+    Files are ordered by ``PartStartTime`` and continuity is validated before
+    signal data are read.
+    """
+
+    def __init__(self, files, *, vendor="OptaSense", continuity_tolerance_samples=0.5):
+        paths = [Path(path) for path in files]
+        if not paths:
+            raise ValueError("DASRecording requires at least one source file")
+        missing = [str(path) for path in paths if not path.is_file()]
+        if missing:
+            raise FileNotFoundError(f"Source files do not exist: {missing}")
+
+        vendor_name = str(vendor).lower()
+        if vendor_name != "optasense":
+            raise NotImplementedError(
+                "DASRecording currently supports timestamped OptaSense files only"
+            )
+
+        inspected = [self._inspect_optasense(path) for path in paths]
+        inspected.sort(key=lambda part: part["start_time"])
+        self.vendor = "OptaSense"
+        self._validate_common_metadata(inspected)
+
+        tolerance_samples = float(continuity_tolerance_samples)
+        if tolerance_samples < 0:
+            raise ValueError("continuity_tolerance_samples must be >= 0")
+
+        parts = []
+        global_start = 0
+        for index, info in enumerate(inspected):
+            if index:
+                previous = inspected[index - 1]
+                expected = previous["start_time"] + timedelta(
+                    seconds=previous["n_time"] / previous["fs"]
+                )
+                error_seconds = (info["start_time"] - expected).total_seconds()
+                tolerance_seconds = tolerance_samples / info["fs"]
+                if abs(error_seconds) > tolerance_seconds:
+                    relation = "gap" if error_seconds > 0 else "overlap"
+                    raise ValueError(
+                        f"Recording has a {relation} of {abs(error_seconds):.9f} s "
+                        f"between {previous['path'].name} and {info['path'].name}"
+                    )
+
+            global_stop = global_start + info["n_time"]
+            parts.append(
+                RecordingPart(
+                    path=info["path"],
+                    start_time=info["start_time"],
+                    stop_time=info["start_time"]
+                    + timedelta(seconds=info["n_time"] / info["fs"]),
+                    start_sample=global_start,
+                    stop_sample=global_stop,
+                    n_time=info["n_time"],
+                    n_channels=info["n_channels"],
+                    fs=info["fs"],
+                    dx=info["dx"],
+                    dtype=info["dtype"],
+                    raw_path=info["raw_path"],
+                )
+            )
+            global_start = global_stop
+
+        self.parts = tuple(parts)
+        first = self.parts[0]
+        self.fs = first.fs
+        self.dx = first.dx
+        self.n_channels = first.n_channels
+        self.dtype = np.dtype(first.dtype)
+        self.n_samples = self.parts[-1].stop_sample
+        self.start_time = first.start_time
+        self.stop_time = self.parts[-1].stop_time
+
+    @staticmethod
+    def _inspect_optasense(path):
+        raw_path = "Acquisition/Raw[0]/RawData"
+        with h5py.File(path, "r") as handle:
+            dataset = handle[raw_path]
+            if dataset.ndim != 2:
+                raise ValueError(
+                    f"Expected 2-D OptaSense data in {path}, got {dataset.shape}"
+                )
+            n_time, n_channels = map(int, dataset.shape)
+            fs = float(handle["Acquisition/Raw[0]"].attrs["OutputDataRate"])
+            dx = float(handle["Acquisition"].attrs["SpatialSamplingInterval"])
+            start_time = _parse_start_time_attr(dataset.attrs.get("PartStartTime"))
+            if start_time is None:
+                start_time = _parse_start_time_attr(
+                    handle["Acquisition"].attrs.get("MeasurementStartTime")
+                )
+            if start_time is None:
+                raise ValueError(f"No usable start timestamp in {path}")
+            return {
+                "path": path,
+                "start_time": start_time,
+                "n_time": n_time,
+                "n_channels": n_channels,
+                "fs": fs,
+                "dx": dx,
+                "dtype": str(dataset.dtype),
+                "raw_path": raw_path,
+            }
+
+    @staticmethod
+    def _validate_common_metadata(parts):
+        first = parts[0]
+        fields = ("n_channels", "fs", "dx", "dtype", "raw_path")
+        for part in parts[1:]:
+            for field in fields:
+                if part[field] != first[field]:
+                    raise ValueError(
+                        f"Inconsistent {field}: {first['path'].name} has "
+                        f"{first[field]!r}, but {part['path'].name} has {part[field]!r}"
+                    )
+
+    @property
+    def duration_seconds(self):
+        return self.n_samples / self.fs
+
+    def _validate_bounds(self, start, stop, channel_start, channel_stop):
+        values = (start, stop, channel_start, channel_stop)
+        if any(isinstance(value, bool) or int(value) != value for value in values):
+            raise TypeError("Sample and channel bounds must be integers")
+        start, stop, channel_start, channel_stop = map(int, values)
+        if not 0 <= start < stop <= self.n_samples:
+            raise ValueError(
+                f"Require 0 <= start < stop <= {self.n_samples}; got {start}:{stop}"
+            )
+        if not 0 <= channel_start < channel_stop <= self.n_channels:
+            raise ValueError(
+                f"Require 0 <= channel_start < channel_stop <= {self.n_channels}; "
+                f"got {channel_start}:{channel_stop}"
+            )
+        return start, stop, channel_start, channel_stop
+
+    def source_spans(self, start, stop):
+        """Return the source-file slices contributing to a global time range."""
+        start, stop, _, _ = self._validate_bounds(
+            start, stop, 0, self.n_channels
+        )
+        spans = []
+        for part in self.parts:
+            overlap_start = max(start, part.start_sample)
+            overlap_stop = min(stop, part.stop_sample)
+            if overlap_start >= overlap_stop:
+                continue
+            spans.append(
+                {
+                    "file": part.path.name,
+                    "local_start": overlap_start - part.start_sample,
+                    "local_stop": overlap_stop - part.start_sample,
+                }
+            )
+        return spans
+
+    def read(self, start, stop, channel_start=0, channel_stop=None):
+        """Read ``[channel_start:channel_stop, start:stop]`` lazily."""
+        if channel_stop is None:
+            channel_stop = self.n_channels
+        start, stop, channel_start, channel_stop = self._validate_bounds(
+            start, stop, channel_start, channel_stop
+        )
+
+        pieces = []
+        for part in self.parts:
+            overlap_start = max(start, part.start_sample)
+            overlap_stop = min(stop, part.stop_sample)
+            if overlap_start >= overlap_stop:
+                continue
+            local_start = overlap_start - part.start_sample
+            local_stop = overlap_stop - part.start_sample
+            with h5py.File(part.path, "r") as handle:
+                # OptaSense stores (time, channel); transpose only the small slice.
+                piece = handle[part.raw_path][
+                    local_start:local_stop, channel_start:channel_stop
+                ].T
+            pieces.append(piece)
+
+        if not pieces:
+            raise RuntimeError("No recording parts intersect the requested range")
+        result = pieces[0] if len(pieces) == 1 else np.concatenate(pieces, axis=1)
+        expected = (channel_stop - channel_start, stop - start)
+        if result.shape != expected:
+            raise RuntimeError(f"Read produced shape {result.shape}; expected {expected}")
+        return result

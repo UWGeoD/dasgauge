@@ -5,19 +5,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pip install -e '.[plotting]'                     # editable install with matplotlib
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt         # full editable environment
 
-python -m unittest discover -s tests -v          # full suite (stdlib unittest, no pytest)
-python -m unittest tests.test_preprocessing      # one module
-python -m unittest tests.test_preprocessing.PipelineTests.test_runs_full_chain   # one test
+python -m unittest discover -s tests -v            # full suite
+python -m unittest tests.test_preprocessing        # one module
+python -m unittest tests.test_preprocessing.PipelineTests.test_runs_full_chain
 ```
 
 There is no linter, formatter, or CI configured.
 
 ## Architecture
 
-Three modules under `dasgauge/`, layered but not coupled: `io` produces arrays, `preprocessing`
-transforms them, `plotting` displays them. Nothing imports across the boundary.
+The package also includes `sampling` for continuous multi-file sample stores,
+`config` for dataset YAML, and `c2st` for frozen representations, KNN, and inference.
+The original `io`/`preprocessing`/`plotting` boundaries remain unchanged.
 
 **Array convention.** Every function in `preprocessing` and `plotting` takes and returns 2-D
 `(n_channels, n_time)` float arrays, time on `axis=1`. `dasgauge/io.py` transposes vendor HDF5
@@ -32,6 +35,15 @@ enforces this at every entry point.
 values with `None`/`nan` rather than omitting keys, so downstream code can index blindly.
 Adding a vendor means adding a `_read_*` method that populates that full key set plus a
 dispatch branch. `raw_hdf5` has no timestamp metadata and requires explicit `fs`/`dx` kwargs.
+
+**Continuous recordings.** `DASRecording` inspects OptaSense metadata without loading signal
+arrays, sorts parts by `PartStartTime`, validates sample-level continuity and common metadata,
+then reads only requested time/channel slices. Global half-open ranges may cross files.
+
+**Samples and C2ST.** `sampling.split_recording` writes paired coupling/uncoupling arrays to one
+sample-major, LZF-compressed HDF5 file plus CSV/JSON provenance. `c2st` lazily imports optional
+PyTorch, removes ResNet-34's classifier to produce 512-D features, and runs KNN with paired or
+block label-swap calibration. Train/test splitting occurs at the pair/block level.
 
 **Preprocessing pipeline.** The primitives (`detrend_linear`, `bandpass_sos`, `fk_filter`,
 `curvelet_denoise`, `hilbert_transform`, `downsample_time`, `integrate_strain_rate_fd`) are
@@ -68,7 +80,8 @@ Parts of this package are derived from `UWGeoD/DAS_Preprocessing` at commit
 [tests/test_independence.py](tests/test_independence.py) and will fail the suite if broken:
 
 1. Every derived module's docstring must name that exact source commit.
-2. `dasgauge/` may import only `numpy`, `scipy`, `h5py`, `matplotlib` and the standard library —
+2. `dasgauge/` may import only declared dependencies (`numpy`, `scipy`, `h5py`, `matplotlib`,
+   `yaml`, and optional `torch`/`torchvision`) and the standard library —
    no imports from the source project, no `sys.path` tampering, no absolute path constants.
 
 When adding or moving derived code, update both [PROVENANCE.md](PROVENANCE.md) and

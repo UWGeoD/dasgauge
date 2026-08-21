@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import dasgauge.plotting as plotting
-from dasgauge.plotting import normalize, plot_das_data, plot_single
+from dasgauge.plotting import normalize, plot_das_data, plot_single, plot_waterfall
 
 
 class PlottingTestCase(unittest.TestCase):
@@ -40,8 +40,10 @@ class PlotDasDataTests(PlottingTestCase):
         self.assertEqual(len(ax.images), 1)
         self.assertEqual(ax.get_xlabel(), "Channel Position (m)")
         self.assertEqual(ax.get_ylabel(), "Time (s)")
-        # channel positions scaled by dx; time axis inverted (top = t0)
-        self.assertEqual(ax.get_xlim(), (0.0, 14.0))
+        # channel positions scaled by dx; time axis inverted (top = t0).
+        # Limits carry half a cell past the end channels so each column is
+        # centred on its own coordinate rather than starting there.
+        self.assertEqual(ax.get_xlim(), (-1.0, 15.0))
         self.assertGreater(ax.get_ylim()[0], ax.get_ylim()[1])
 
     def test_time_window_and_title(self):
@@ -54,16 +56,46 @@ class PlotDasDataTests(PlottingTestCase):
         # 0.5-1.0 s at dt=0.01 keeps 51 of 200 samples
         self.assertEqual(ax.images[0].get_array().shape[0], 51)
 
+    def test_channel_axis_number_uses_raw_indices(self):
+        fig, ax = plot_das_data(
+            self.data, np.arange(8), dx=2.0, dt=0.01,
+            channel_axis="number", show=False,
+        )
+
+        self.assertEqual(ax.get_xlabel(), "Channel Number")
+        # indices plotted as-is; dx=2.0 would have given (-1.0, 15.0)
+        self.assertEqual(ax.get_xlim(), (-0.5, 7.5))
+
+    def test_columns_are_centred_on_their_channel(self):
+        fig, ax = plot_das_data(
+            self.data, np.arange(8), dx=1.0, dt=0.01,
+            channel_axis="number", show=False,
+        )
+
+        left, right = ax.images[0].get_extent()[:2]
+        width = (right - left) / self.data.shape[0]
+        centres = [left + (i + 0.5) * width for i in range(self.data.shape[0])]
+        np.testing.assert_allclose(centres, np.arange(8), atol=1e-9)
+
+    def test_channel_axis_rejects_unknown_value(self):
+        with self.assertRaises(ValueError):
+            plot_das_data(
+                self.data, np.arange(8), dx=1.0, dt=0.01,
+                channel_axis="metres", show=False,
+            )
+
     def test_draws_into_existing_axes(self):
         fig, axes = plt.subplots(1, 2)
 
-        out_fig, out_ax = plot_das_data(
-            self.data, np.arange(8), dx=1.0, dt=0.01, ax=axes[1], show=False
-        )
+        with mock.patch.object(fig, "tight_layout") as tight_layout:
+            out_fig, out_ax = plot_das_data(
+                self.data, np.arange(8), dx=1.0, dt=0.01, ax=axes[1], show=False
+            )
 
         self.assertIs(out_ax, axes[1])
         self.assertIs(out_fig, fig)
         self.assertEqual(len(axes[0].images), 0)
+        tight_layout.assert_not_called()
 
 
 class PlotSingleTests(PlottingTestCase):
@@ -94,6 +126,48 @@ class PlotSingleTests(PlottingTestCase):
         out_fig, out_ax = plot_single(self.data, 1, dx=1.0, dt=0.01, ax=ax, show=False)
         self.assertIs(out_ax, ax)
         self.assertIs(out_fig, fig)
+
+
+class PlotWaterfallTests(PlottingTestCase):
+    def test_shared_gain_offsets_every_channel_trace(self):
+        channels = np.arange(10, 18)
+        fig, ax = plot_waterfall(
+            self.data,
+            channels,
+            dt=0.01,
+            gain=0.25,
+            demean=False,
+            show=False,
+        )
+
+        self.assertEqual(len(ax.lines), len(channels))
+        np.testing.assert_allclose(
+            ax.lines[3].get_ydata(), channels[3] - 0.25 * self.data[3]
+        )
+        self.assertEqual(ax.get_xlabel(), "Time (s)")
+        self.assertEqual(ax.get_ylabel(), "Channel index (traces offset by channel)")
+        self.assertGreater(ax.get_ylim()[0], ax.get_ylim()[1])
+
+    def test_auto_gain_demeans_and_time_slices(self):
+        channels = np.arange(8)
+        fig, ax = plot_waterfall(
+            self.data,
+            channels,
+            dt=0.01,
+            start_time=0.5,
+            end_time=1.0,
+            show=False,
+        )
+
+        self.assertEqual(len(ax.lines), 8)
+        self.assertEqual(len(ax.lines[0].get_xdata()), 51)
+        self.assertTrue(np.isfinite(ax.lines[0].get_ydata()).all())
+
+    def test_validates_shape_and_gain(self):
+        with self.assertRaisesRegex(ValueError, "match data rows"):
+            plot_waterfall(self.data, np.arange(7), dt=0.01, show=False)
+        with self.assertRaisesRegex(ValueError, "gain"):
+            plot_waterfall(self.data, np.arange(8), dt=0.01, gain=0, show=False)
 
 
 class OptionalDependencyTests(unittest.TestCase):

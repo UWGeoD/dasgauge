@@ -1,0 +1,19 @@
+# Newville Bridge DAS recording (2025-11-13).
+# Set DASGAUGE_NEWVILLE_RECORDING to the directory containing the HDF5 parts.
+dataset_id: newville_nov
+recording_dir: "${DASGAUGE_NEWVILLE_RECORDING}"
+file_pattern: "*.h5"
+vendor: optasense
+data_type: strain_rate
+
+# Store native raw int32 patches; display-only preprocessing is separate.
+preprocess: []
+
+# Zero-based, half-open channel ranges.
+sampling_defaults:
+  coupling_channels: [73, 104]
+  uncoupling_channels: [35, 66]
+  strategies:
+    hold_skip:
+      s1: 5
+      s2: 20

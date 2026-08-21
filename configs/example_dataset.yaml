@@ -1,0 +1,47 @@
+# Template dataset config for dasgauge — copy, rename, fill in.
+#
+# This file identifies a recording and provides stable sample-generation
+# defaults. Interactive plotting choices remain with the caller.
+#
+# split_samples.py and sweep_c2st.py read this file.
+
+# ── Source ───────────────────────────────────────────────────────────────────
+dataset_id: example
+recording_dir: /path/to/recording/
+file_pattern: "*.h5"
+vendor: optasense                    # optasense | silixa | raw_hdf5
+
+# ── raw_hdf5 only ────────────────────────────────────────────────────────────
+# OptaSense and Silixa files carry the sample rate and channel spacing as HDF5
+# attributes, and DAS() reads them from the file. It forwards **kwargs only to
+# the raw_hdf5 reader, so anything set here is silently ignored for the other
+# two vendors — never treat these as the source of truth. Required (and read)
+# only when vendor: raw_hdf5.
+# fs: 1000                 # Hz
+# dx: 1.0                  # m between channels
+# dataset_key: strainrate  # name of the single 2-D dataset in the file
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+# strain_rate | strain. A property of the sensor, not a tuning knob, which is
+# why it lives here: it decides whether an integrate_fd step is legitimate.
+# Integrating data that is already strain is wrong, and nothing will complain.
+data_type: strain_rate
+
+# ── Sample preprocessing ─────────────────────────────────────────────────────
+# Applied independently within each extracted sample. Use [] for raw samples.
+preprocess: []
+# preprocess:
+#   - name: detrend
+#     params: {axis: 1}
+#   - name: bandpass
+#     params: {f_lo: 0.1, f_hi: 2.0, order: 5, zero_phase: false}
+
+# ── Sampling defaults ────────────────────────────────────────────────────────
+# All channel ranges are zero-based and half-open: [start, stop).
+sampling_defaults:
+  coupling_channels: [35, 66]
+  uncoupling_channels: [72, 103]
+  strategies:
+    hold_skip:
+      s1: 10
+      s2: 50
