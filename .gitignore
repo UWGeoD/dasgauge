@@ -25,6 +25,11 @@ venv/
 !/sweep/newville_nov/summary.csv
 !/sweep/newville_nov/summary.json
 !/sweep/newville_nov/summary.md
+!/sweep/newville_nov_no_gap/
+/sweep/newville_nov_no_gap/*
+!/sweep/newville_nov_no_gap/summary.csv
+!/sweep/newville_nov_no_gap/summary.json
+!/sweep/newville_nov_no_gap/summary.md
 
 # Raw Monte Carlo records and run logs are reproducible intermediates.
 /experiments/**/*.jsonl.gz

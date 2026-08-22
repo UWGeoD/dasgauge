@@ -204,6 +204,21 @@ python sweep_c2st.py \
   --dry-run
 ```
 
+The supplementary limiting-case diagnostic removes the inter-block gap while
+retaining the three block durations. Its compact results are archived under
+`sweep/newville_nov_no_gap/` and can be reproduced with:
+
+```bash
+python sweep_c2st.py \
+  --dataset newville_nov \
+  --output-root /path/to/samples \
+  --sweep-dir sweep/newville_nov_no_gap \
+  --s1 5 10 20 --s2 0 \
+  --comparisons s-p s-p-matched s-s p-p \
+  --methods original_binomial_c2st paired_mcnemar paired_swap_permutation \
+  --repeats 100 --permutations 999 --jobs 4
+```
+
 To rebuild only the CSV, JSON, and Markdown summaries from existing result
 files, without sampling, extracting features, or running a C2ST again:
 
